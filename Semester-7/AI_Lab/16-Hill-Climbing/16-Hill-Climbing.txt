@@ -1,0 +1,69 @@
+% --------------------------------------------
+% হিউরিস্টিক ভ্যালু (heuristic values) সংজ্ঞায়িত করা
+% h(Node, Heuristic)
+% লক্ষ্য নোড 'e' যার heuristic value 0 (উদ্দেশ্য: e তে পৌঁছানো)
+% --------------------------------------------
+h(a, 6).  % node 'a' এর heuristic মান 6
+h(b, 4).  % node 'b' এর heuristic মান 4
+h(c, 5).  % node 'c' এর heuristic মান 5
+h(d, 2).  % node 'd' এর heuristic মান 2
+h(e, 0).  % node 'e' হলো goal, তাই এর heuristic মান 0
+
+% --------------------------------------------
+% গ্রাফে নোডগুলোর মধ্যে সংযোগ (edge) নির্দেশ করে
+% --------------------------------------------
+edge(a, b).
+edge(a, c).
+edge(b, d).
+edge(c, d).
+edge(d, e).
+
+% --------------------------------------------
+% মূল হিল ক্লাইম্বিং ফাংশন
+% Node: শুরু নোড
+% Goal: লক্ষ্য নোড
+% Path: সর্বোত্তম পথে পৌঁছানোর জন্য পাওয়া পাথ
+% --------------------------------------------
+hill_climb(Node, Goal, Path) :- 
+    hill_climb_util(Node, Goal, [Node], Path).  % প্রথমে ভিজিটেড লিস্টে শুধু Node থাকবে
+
+% --------------------------------------------
+% যদি Goal এ পৌঁছানো যায়, তাহলে ভিজিটেড লিস্টকে রিভার্স করে Path হিসেবে রিটার্ন করা হয়
+% --------------------------------------------
+hill_climb_util(Goal, Goal, Visited, Path) :- 
+    reverse(Visited, Path).  % যেহেতু ভিজিটেড লিস্টে রিভার্স অর্ডারে আছে, তাই রিভার্স করে রিটার্ন
+
+% --------------------------------------------
+% Goal এখনো পাওয়া যায়নি, তখন:
+% 1. Neighbors খুঁজে বের করি যাদের আগে ভিজিট করা হয়নি
+% 2. তাদের হিউরিস্টিক অনুযায়ী সাজাই (ascending order)
+% 3. যাদের heuristic সবচেয়ে কম, তাকে বেছে নেই (Best)
+% 4. আবার recursive ভাবে চালাই
+% --------------------------------------------
+hill_climb_util(Current, Goal, Visited, Path) :-
+    findall(Next, (edge(Current, Next), \+ member(Next, Visited)), Neighbors),  % নতুন Neighbors যাদের আগে ভিজিট করিনি
+    sort_neighbors_by_heuristic(Neighbors, Sorted),  % হিউরিস্টিক অনুসারে সাজানো
+    Sorted = [Best | _],  % সবচেয়ে কম হিউরিস্টিক যেটার, তাকে নেই
+    hill_climb_util(Best, Goal, [Best | Visited], Path).  % Best কে ভিজিটেডে যুক্ত করে পুনরায় কল করি
+
+% --------------------------------------------
+% Neighbors গুলোকে হিউরিস্টিক অনুযায়ী সাজানো
+% map_list_to_pairs(h, List, PairList): List এর প্রতিটি উপাদানের উপর h প্রয়োগ করে [Heuristic-Node] ফর্মে pair তৈরি
+% keysort(Pairs, Sorted): heuristic অনুযায়ী sort করে
+% pairs_values: sorted pair থেকে শুধু নোড লিস্ট নেয়
+% --------------------------------------------
+sort_neighbors_by_heuristic(Neighbors, Sorted) :-
+    map_list_to_pairs(h, Neighbors, Pairs),     % [4-b, 5-c, ...] এর মত
+    keysort(Pairs, SortedPairs),                % heuristic অনুযায়ী sort
+    pairs_values(SortedPairs, Sorted).          % শুধু Node গুলো বের করি
+
+% --------------------------------------------
+% উদাহরণ কুয়েরি:
+% ?- hill_climb(a, e, Path).
+% মানে: 'a' থেকে শুরু করে hill climbing অনুসারে সর্বোত্তম heuristic ব্যবহার করে 'e' তে পৌঁছাতে চাই
+% --------------------------------------------
+
+✅ উদাহরণ আউটপুট:
+
+Path = [a, b, d, e].
+এটি দেখায় যে Hill Climbing অ্যালগরিদম a → b → d → e পথটি বেছে নিয়েছে কারণ প্রতিটি ধাপে সবচেয়ে কম হিউরিস্টিক ভ্যালু সহ নোডে গিয়েছে।
